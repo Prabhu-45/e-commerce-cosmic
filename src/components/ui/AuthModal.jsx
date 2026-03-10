@@ -49,6 +49,33 @@ export default function AuthModal() {
         setLoading(true);
         setError('');
 
+        // Form Validation for Signup
+        if (!isLogin) {
+            // Mobile Number Validation
+            if (!/^\d{10}$/.test(mobile)) {
+                setError('Mobile number must be exactly 10 digits.');
+                setLoading(false);
+                return;
+            }
+
+            // Date of Birth Validation
+            const selectedDate = new Date(dob);
+            const today = new Date();
+            if (selectedDate > today) {
+                setError('Date of birth cannot be in the future.');
+                setLoading(false);
+                return;
+            }
+
+            // Email Validation (contains @ and .com)
+            const emailRegex = /^[^\s@]+@[^\s@]+\.com$/;
+            if (!emailRegex.test(email)) {
+                setError('Email must contain @ and end with .com');
+                setLoading(false);
+                return;
+            }
+        }
+
         try {
             if (isLogin) {
                 const { data, error } = await supabase.auth.signInWithPassword({ email, password });
@@ -172,8 +199,13 @@ export default function AuthModal() {
                                     required
                                     placeholder="Mobile Number"
                                     value={mobile}
-                                    onChange={(e) => setMobile(e.target.value)}
+                                    onChange={(e) => {
+                                        const value = e.target.value.replace(/\D/g, '');
+                                        if (value.length <= 10) setMobile(value);
+                                    }}
                                     className="w-full bg-white/5 border border-white/10 rounded-xl py-3 pl-12 pr-4 text-white placeholder:text-white/30 focus:outline-none focus:border-[color:var(--color-gold)]/50 focus:bg-white/10 transition-all font-sans"
+                                    pattern="\d{10}"
+                                    maxLength="10"
                                 />
                             </div>
                             <div className="relative">
@@ -183,6 +215,7 @@ export default function AuthModal() {
                                     required
                                     value={dob}
                                     onChange={(e) => setDob(e.target.value)}
+                                    max={new Date().toISOString().split('T')[0]}
                                     className="w-full bg-white/5 border border-white/10 rounded-xl py-3 pl-12 pr-4 text-white placeholder:text-white/30 focus:outline-none focus:border-[color:var(--color-gold)]/50 focus:bg-white/10 transition-all font-sans"
                                     style={{ colorScheme: 'dark' }}
                                 />

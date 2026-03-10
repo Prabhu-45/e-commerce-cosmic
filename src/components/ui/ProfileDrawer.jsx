@@ -1,14 +1,21 @@
 import React, { useEffect, useRef } from 'react';
-import { X, ShoppingBag, Heart, Ticket, HelpCircle, LogOut, Coins, User as UserIcon, ArrowLeft } from 'lucide-react';
+import { X, ShoppingBag, Heart, Ticket, HelpCircle, LogOut, Coins, User as UserIcon, ArrowLeft, MapPin } from 'lucide-react';
 import gsap from 'gsap';
 import { useStore } from '../../store/useStore';
 import { supabase } from '../../lib/supabaseClient';
+import AddressManager from './AddressManager';
 
 export default function ProfileDrawer() {
-    const { isProfileOpen, setIsProfileOpen, user, luxuryCoins, wishlist, toggleWishlist } = useStore();
-    const [view, setView] = React.useState('menu'); // 'menu' or 'wishlist'
+    const { isProfileOpen, setIsProfileOpen, user, luxuryCoins, wishlist, toggleWishlist, orders, fetchOrders } = useStore();
+    const [view, setView] = React.useState('menu'); // 'menu', 'wishlist', 'addresses', or 'orders'
     const drawerRef = useRef(null);
     const overlayRef = useRef(null);
+
+    useEffect(() => {
+        if (isProfileOpen && user && view === 'orders') {
+            fetchOrders(user.id);
+        }
+    }, [isProfileOpen, user, view, fetchOrders]);
 
     useEffect(() => {
         if (isProfileOpen) {
@@ -33,6 +40,7 @@ export default function ProfileDrawer() {
     const menuItems = [
         { icon: ShoppingBag, label: 'My Orders', desc: 'Track your acquisitions', id: 'orders' },
         { icon: Heart, label: 'Wishlist', desc: 'Your desired artifacts', id: 'wishlist' },
+        { icon: MapPin, label: 'My Addresses', desc: 'Shipping coordinates', id: 'addresses' },
         { icon: Ticket, label: 'Coupons', desc: 'Luxury privileges', id: 'coupons' },
         { icon: HelpCircle, label: 'Help Center', desc: 'Support & Guidance', id: 'help' },
     ];
@@ -98,7 +106,11 @@ export default function ProfileDrawer() {
                             {menuItems.map((item, index) => (
                                 <button
                                     key={index}
-                                    onClick={() => item.id === 'wishlist' && setView('wishlist')}
+                                    onClick={() => {
+                                        if (item.id === 'wishlist') setView('wishlist');
+                                        if (item.id === 'addresses') setView('addresses');
+                                        if (item.id === 'orders') setView('orders');
+                                    }}
                                     className="w-full flex items-center gap-5 p-5 rounded-2xl bg-white/0 hover:bg-white/5 border border-transparent hover:border-white/10 transition-all group text-left"
                                 >
                                     <div className="p-3 rounded-xl bg-white/5 text-white/40 group-hover:text-[color:var(--color-gold)] transition-colors">
@@ -113,7 +125,7 @@ export default function ProfileDrawer() {
                                 </button>
                             ))}
                         </div>
-                    ) : (
+                    ) : view === 'wishlist' ? (
                         <div className="flex flex-col h-full animate-in fade-in slide-in-from-right-4 duration-300">
                             <div className="flex items-center gap-4 mb-8">
                                 <button
@@ -154,6 +166,69 @@ export default function ProfileDrawer() {
                                             >
                                                 <X className="w-5 h-5" />
                                             </button>
+                                        </div>
+                                    ))}
+                                </div>
+                            )}
+                        </div>
+                    ) : view === 'addresses' ? (
+                        <div className="flex flex-col h-full animate-in fade-in slide-in-from-right-4 duration-300">
+                            <div className="flex items-center gap-4 mb-4">
+                                <button
+                                    onClick={() => setView('menu')}
+                                    className="p-2 rounded-full hover:bg-white/10 text-white/50 hover:text-white transition-colors"
+                                >
+                                    <ArrowLeft className="w-5 h-5" />
+                                </button>
+                                <h3 className="text-2xl font-serif text-white tracking-widest uppercase">Addresses</h3>
+                            </div>
+                            <AddressManager />
+                        </div>
+                    ) : (
+                        <div className="flex flex-col h-full animate-in fade-in slide-in-from-right-4 duration-300">
+                            <div className="flex items-center gap-4 mb-8">
+                                <button
+                                    onClick={() => setView('menu')}
+                                    className="p-2 rounded-full hover:bg-white/10 text-white/50 hover:text-white transition-colors"
+                                >
+                                    <ArrowLeft className="w-5 h-5" />
+                                </button>
+                                <h3 className="text-2xl font-serif text-white tracking-widest uppercase">Orders</h3>
+                            </div>
+
+                            {orders.length === 0 ? (
+                                <div className="flex-1 flex flex-col items-center justify-center text-center px-4">
+                                    <ShoppingBag className="w-12 h-12 text-white/10 mb-4" />
+                                    <p className="text-white/30 text-sm tracking-widest uppercase">No acquisitions found</p>
+                                </div>
+                            ) : (
+                                <div className="space-y-6">
+                                    {orders.map((order) => (
+                                        <div key={order._id} className="p-6 rounded-2xl bg-white/5 border border-white/5 space-y-4">
+                                            <div className="flex justify-between items-start">
+                                                <div>
+                                                    <p className="text-[10px] text-white/40 uppercase tracking-widest mb-1">Order ID: {order._id.slice(-8).toUpperCase()}</p>
+                                                    <p className="text-white font-sans text-lg font-bold">{order.total}</p>
+                                                </div>
+                                                <span className="text-[10px] uppercase tracking-tighter bg-red-400/20 text-red-400 px-3 py-1 rounded-full border border-red-400/30 font-bold">
+                                                    {order.status}
+                                                </span>
+                                            </div>
+
+                                            <div className="flex -space-x-3 overflow-hidden">
+                                                {order.products.map((p, i) => (
+                                                    <div key={i} className="w-10 h-10 rounded-lg border-2 border-[#050508] bg-black overflow-hidden">
+                                                        <img src={p.img} alt="" className="w-full h-full object-cover mix-blend-screen opacity-80" />
+                                                    </div>
+                                                ))}
+                                            </div>
+
+                                            <div className="pt-2 border-t border-white/5">
+                                                <p className="text-[10px] text-white/40 uppercase tracking-widest mb-1 italic">Transit to:</p>
+                                                <p className="text-white/60 text-xs">
+                                                    {order.address.lane1}, {order.address.district}
+                                                </p>
+                                            </div>
                                         </div>
                                     ))}
                                 </div>

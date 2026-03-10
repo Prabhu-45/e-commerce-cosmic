@@ -5,6 +5,7 @@ import { ArrowLeft, ShoppingCart, CreditCard, Heart } from 'lucide-react';
 import { useStore } from '../store/useStore';
 import { getAllProductsList } from '../data/products';
 import Footer from '../components/sections/Footer';
+import CheckoutModal from '../components/ui/CheckoutModal';
 
 export default function ProductDetails() {
     const { slug } = useParams();
@@ -15,8 +16,17 @@ export default function ProductDetails() {
     const toggleWishlist = useStore((state) => state.toggleWishlist);
     const user = useStore((state) => state.user);
     const setAuthModalOpen = useStore((state) => state.setAuthModalOpen);
+    const [isCheckoutOpen, setIsCheckoutOpen] = useState(false);
     const cartBtnRef = useRef(null);
     const heartBtnRef = useRef(null);
+
+    const handleBuyNow = () => {
+        if (!user) {
+            setAuthModalOpen(true);
+            return;
+        }
+        setIsCheckoutOpen(true);
+    };
 
     const handleAddToCart = () => {
         if (!product) return;
@@ -151,7 +161,10 @@ export default function ProductDetails() {
                                 <Heart className={`w-6 h-6 ${isInWishlist ? 'fill-current' : ''}`} />
                             </button>
 
-                            <button className="liquid-btn border border-[color:var(--color-gold)] text-[color:var(--color-gold)] bg-[color:var(--color-gold)]/10 rounded-full overflow-hidden w-full sm:w-auto flex-[2] backdrop-blur-md px-6 py-5 flex items-center justify-center group hover:bg-transparent">
+                            <button
+                                onClick={handleBuyNow}
+                                className="liquid-btn border border-[color:var(--color-gold)] text-[color:var(--color-gold)] bg-[color:var(--color-gold)]/10 rounded-full overflow-hidden w-full sm:w-auto flex-[2] backdrop-blur-md px-6 py-5 flex items-center justify-center group hover:bg-transparent"
+                            >
                                 <span className="relative z-10 transition-colors duration-300 text-sm tracking-[0.2em] font-bold uppercase flex items-center group-hover:text-black text-white">
                                     <CreditCard className="w-4 h-4 mr-3" />
                                     Buy Now
@@ -173,6 +186,11 @@ export default function ProductDetails() {
                     </div>
                 </div>
             </div>
+            <CheckoutModal
+                isOpen={isCheckoutOpen}
+                onClose={() => setIsCheckoutOpen(false)}
+                product={product}
+            />
             <Footer />
         </div>
     );

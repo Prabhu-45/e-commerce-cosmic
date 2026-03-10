@@ -4,12 +4,15 @@ import gsap from 'gsap';
 import { useStore } from '../../store/useStore';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '../../lib/supabaseClient';
+import CheckoutModal from './CheckoutModal';
 
 export default function CartDrawer() {
     const { cart, removeFromCart, isCartOpen, setIsCartOpen, user } = useStore();
     const drawerRef = useRef(null);
     const overlayRef = useRef(null);
     const navigate = useNavigate();
+    const [isCheckoutOpen, setIsCheckoutOpen] = React.useState(false);
+    const setAuthModalOpen = useStore((state) => state.setAuthModalOpen);
 
     // Calculate total
     const total = cart.reduce((sum, item) => {
@@ -32,9 +35,12 @@ export default function CartDrawer() {
     }, [isCartOpen]);
 
     const handleCheckout = () => {
-        // Placeholder for checkout logic
-        setIsCartOpen(false);
-        // Could navigate to a checkout page here
+        if (!user) {
+            setIsCartOpen(false);
+            setAuthModalOpen(true);
+            return;
+        }
+        setIsCheckoutOpen(true);
     };
 
     const handleSignOut = async () => {
@@ -127,6 +133,12 @@ export default function CartDrawer() {
                     </div>
                 )}
             </div>
+
+            <CheckoutModal
+                isOpen={isCheckoutOpen}
+                onClose={() => setIsCheckoutOpen(false)}
+                isCart={true}
+            />
         </>
     );
 }
